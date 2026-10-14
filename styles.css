@@ -1,27 +1,806 @@
-body { font-family: system-ui, sans-serif; margin: 0; color: #222; }
-header { display: flex; align-items: center; gap: 2em; padding: .5em 1em; background: #f2f2f2; }
-h1 { font-size: 1.3em; margin: 0; }
-.tab { border: none; background: none; padding: .5em 1em; cursor: pointer; }
-.tab.active { border-bottom: 2px solid #36c; font-weight: bold; }
-.ops { display: flex; gap: .8em; align-items: center; font-size: .9em; }
-.panel { display: none; padding: 1em; }
-.panel.active { display: block; }
-.row { display: flex; gap: .5em; align-items: center; flex-wrap: wrap; margin: .5em 0; }
-#c-input { flex: 1; font-family: monospace; font-size: 1.1em; padding: .3em; }
-.error { color: #b00; }
-pre.src mark { background: #fbb; }
-dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: .2em 1em; }
-dl.kv dt { font-weight: bold; }
-dl.kv dd { margin: 0; font-family: monospace; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; }
-table { border-collapse: collapse; width: 100%; }
-th, td { border-bottom: 1px solid #ddd; padding: .2em .5em; text-align: left; }
-th[data-key] { cursor: pointer; }
-tbody tr { cursor: pointer; }
-tbody tr:hover { background: #eef; }
-td.expr, .reps li { font-family: monospace; }
-.tree ul { list-style: none; padding-left: 1.2em; border-left: 1px dashed #aaa; margin: 0; }
-.tree li { margin: .1em 0; }
-.tree .op { font-weight: bold; color: #36c; }
-.tree .val { color: #888; font-size: .85em; }
-canvas { border: 1px solid #ddd; max-width: 100%; }
+/* ==========================================================================
+   Number Circuits: stylesheet
+   --------------------------------------------------------------------------
+   Every effect on this page is plain CSS: no frameworks, no images.
+   Open your browser's DevTools (F12), pick any element, and change a value.
+   Each numbered section below shows off one idea worth learning.
+   ========================================================================== */
+
+
+/* 1. DESIGN TOKENS: custom properties ---------------------------------------
+   One variable (--hue) drives the entire palette. The colours use oklch(),
+   a perceptual colour space, so every hue looks equally bright.
+   Try the "Theme hue" slider in the footer: it only changes --hue.          */
+:root {
+  --hue: 275;
+
+  --bg:             oklch(15% 0.03 var(--hue));
+  --bg-2:           oklch(19% 0.045 var(--hue));
+  --surface:        oklch(24% 0.04 var(--hue) / 0.55);
+  --surface-strong: oklch(28% 0.05 var(--hue) / 0.85);
+  --border:         oklch(85% 0.05 var(--hue) / 0.14);
+  --border-strong:  oklch(85% 0.08 var(--hue) / 0.32);
+  --text:           oklch(95% 0.015 var(--hue));
+  --muted:          oklch(72% 0.03 var(--hue));
+  --on-accent:      oklch(16% 0.03 var(--hue));
+
+  --accent:   oklch(72% 0.19 var(--hue));
+  --accent-2: oklch(80% 0.14 calc(var(--hue) - 75));
+  --accent-3: oklch(74% 0.19 calc(var(--hue) + 70));
+  --danger:   oklch(68% 0.2 25);
+  --glow:     oklch(72% 0.19 var(--hue) / 0.25);
+
+  --gradient: linear-gradient(120deg, var(--accent-2), var(--accent), var(--accent-3));
+
+  --radius: 18px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 0 oklch(100% 0 0 / 0.06) inset,
+            0 24px 60px -24px oklch(0% 0 0 / 0.7);
+
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  color-scheme: dark;          /* native controls & scrollbars go dark too */
+  scrollbar-color: var(--accent) transparent;
+  scrollbar-width: thin;
+}
+
+/* @property makes a custom property animatable: here, an angle.            */
+@property --angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+
+/* 2. RESET & PAGE BACKGROUND: layered gradients ------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  line-height: 1.5;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  /* Several gradients stacked on top of each other = soft "aurora" lights. */
+  background:
+    radial-gradient(60rem 40rem at 5% -10%,  oklch(45% 0.18 var(--hue) / 0.35), transparent 60%),
+    radial-gradient(50rem 35rem at 105% 5%,  oklch(55% 0.15 calc(var(--hue) - 75) / 0.22), transparent 60%),
+    radial-gradient(45rem 30rem at 50% 115%, oklch(50% 0.18 calc(var(--hue) + 70) / 0.22), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* A dotted grid, faded out at the edges with a mask. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(oklch(100% 0 0 / 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 25%, black, transparent 75%);
+          mask-image: radial-gradient(ellipse at 50% 25%, black, transparent 75%);
+}
+
+::selection { background: oklch(72% 0.19 var(--hue) / 0.45); }
+
+a { color: var(--accent-2); }
+
+
+/* 3. HEADER: sticky glass with backdrop-filter ------------------------------- */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  padding: 0.9rem clamp(1rem, 4vw, 3rem);
+  background: oklch(15% 0.03 var(--hue) / 0.6);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: 0.85rem; }
+
+/* The logo: a conic gradient spinning behind a solid tile. */
+.logo {
+  position: relative;
+  isolation: isolate;          /* keeps the negative z-index layers inside */
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  font: 800 1.35rem/1 var(--mono);
+  color: var(--text);
+}
+.logo::before,
+.logo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: inherit;
+}
+.logo::before {
+  inset: -2px;
+  background: conic-gradient(from var(--angle), var(--accent-2), var(--accent), var(--accent-3), var(--accent-2));
+  animation: spin 5s linear infinite;
+  filter: drop-shadow(0 0 10px var(--glow));
+}
+.logo::after { inset: 1px; background: var(--bg-2); }
+
+@keyframes spin { to { --angle: 360deg; } }
+
+/* Gradient text: paint a gradient, then clip it to the letters. */
+h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 1rem + 1vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--accent-3), var(--accent-2));
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  animation: shimmer 10s linear infinite;
+}
+@keyframes shimmer { to { background-position: 300% center; } }
+
+.tagline { margin: 0; color: var(--muted); font-size: 0.8rem; }
+
+
+/* 4. TABS: a segmented "pill" control --------------------------------------- */
+nav {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.tab {
+  font: 600 0.9rem var(--font);
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  padding: 0.5rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.3s, box-shadow 0.3s;
+}
+.tab:hover:not(.active) { color: var(--text); background: oklch(100% 0 0 / 0.05); transform: none; }
+.tab.active {
+  color: var(--on-accent);
+  background: var(--gradient);
+  box-shadow: 0 8px 24px -8px var(--accent);
+}
+
+.ops {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.ops b {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  margin-left: -0.4rem;
+  font-family: var(--mono);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+
+/* 5. FORM CONTROLS: restyling native elements -------------------------------
+   appearance: none strips the browser's default look so you can draw your own.
+   This checkbox becomes a toggle switch using only ::before and :checked.    */
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 2.2rem;
+  height: 1.25rem;
+  margin: 0;
+  border-radius: 999px;
+  background: oklch(35% 0.03 var(--hue));
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.25s, box-shadow 0.25s;
+}
+input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.25rem - 6px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 2px 6px oklch(0% 0 0 / 0.4);
+  transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.6, 1); /* a little bounce */
+}
+input[type="checkbox"]:checked { background: var(--gradient); box-shadow: 0 0 14px var(--glow); }
+input[type="checkbox"]:checked::before { transform: translateX(0.95rem); }
+
+input[type="text"],
+input[type="number"],
+select {
+  font: inherit;
+  color: var(--text);
+  background-color: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.8rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input::placeholder { color: var(--muted); opacity: 0.7; }
+
+/* A custom chevron drawn with an inline SVG data URL. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.2rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c9c4e6' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  background-size: 11px;
+}
+select option { background: var(--bg-2); color: var(--text); }
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--glow);
+}
+
+/* The theme slider: a rainbow track made from oklch colour stops. */
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: min(16rem, 70vw);
+  height: 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(90deg,
+    oklch(72% 0.19 0),   oklch(72% 0.19 60),  oklch(72% 0.19 120),
+    oklch(72% 0.19 180), oklch(72% 0.19 240), oklch(72% 0.19 300),
+    oklch(72% 0.19 360));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: var(--text);
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 14px var(--accent);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: var(--text);
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 14px var(--accent);
+}
+
+
+/* 6. BUTTONS: transitions and micro-interactions ----------------------------- */
+button {
+  font: 600 0.9rem var(--font);
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+button:hover:not(:disabled) { border-color: var(--border-strong); transform: translateY(-1px); }
+button:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+button:disabled { opacity: 0.35; cursor: not-allowed; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#b-run {
+  color: var(--on-accent);
+  background: var(--gradient);
+  border-color: transparent;
+  padding-inline: 1.4rem;
+  box-shadow: 0 10px 30px -10px var(--accent);
+}
+#b-run:hover:not(:disabled) { box-shadow: 0 14px 36px -10px var(--accent); }
+#b-stop:not(:disabled) { color: var(--danger); border-color: oklch(68% 0.2 25 / 0.6); }
+
+.chip {
+  font: 0.8rem var(--mono);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--surface);
+}
+.chip:hover:not(:disabled) {
+  /* Gradient border trick: two backgrounds, one clipped to the padding box. */
+  border-color: transparent;
+  background:
+    linear-gradient(var(--bg-2), var(--bg-2)) padding-box,
+    var(--gradient) border-box;
+}
+
+
+/* 7. LAYOUT: panels, flexbox rows and an auto-fitting grid ------------------- */
+.panel {
+  display: none;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem);
+}
+.panel.active {
+  display: block;
+  animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
+}
+
+.panel-head { margin-bottom: 1.5rem; }
+.panel-head h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 1.2rem + 2.2vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+.panel-head h2 em {
+  font-style: normal;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+.panel-head p { margin: 0.5rem 0 0; color: var(--muted); max-width: 62ch; }
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+}
+
+/* repeat(auto-fit, minmax(...)) gives a responsive grid with no media queries. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+.stack { display: grid; gap: 1.5rem; min-width: 0; }
+
+/* A frosted "glass" card. */
+.card {
+  position: relative;
+  padding: 1.2rem 1.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  min-width: 0;
+}
+.card:empty { display: none; }   /* :empty hides cards with nothing in them */
+
+.card-title {
+  margin: 0 0 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+
+/* 8. CALCULATOR -------------------------------------------------------------- */
+#c-mode { padding-block: 0.9rem; }
+
+#c-input {
+  flex: 1 1 18rem;
+  font: 500 clamp(1.1rem, 1rem + 1vw, 1.6rem) var(--mono);
+  letter-spacing: 0.02em;
+  padding: 0.85rem 1.2rem;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  caret-color: var(--accent-3);
+  background:
+    linear-gradient(var(--bg-2), var(--bg-2)) padding-box,
+    var(--gradient) border-box;
+}
+#c-input:focus {
+  box-shadow: 0 0 0 6px var(--glow), 0 24px 60px -20px var(--accent);
+}
+
+.examples { color: var(--muted); font-size: 0.85rem; gap: 0.45rem; }
+
+#c-output {
+  display: grid;
+  gap: 1.2rem;
+  margin-top: 1.6rem;
+}
+#c-output > h3 { margin: 0.4rem 0 -0.4rem; }
+
+/* Key/value results: a two-column CSS grid inside a card. */
+dl.kv {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+dl.kv dt,
+dl.kv dd {
+  padding: 0.8rem 1.3rem;
+  border-bottom: 1px solid var(--border);
+}
+dl.kv dt {
+  display: flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  background: oklch(100% 0 0 / 0.02);
+}
+dl.kv dd {
+  margin: 0;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+dl.kv > :nth-last-child(-n + 2) { border-bottom: 0; }
+
+/* The first value (the result) gets the spotlight. */
+dl.kv dd:first-of-type {
+  font-size: clamp(1.8rem, 1.4rem + 2vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+.error {
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-sm);
+  background: oklch(68% 0.2 25 / 0.12);
+  border: 1px solid oklch(68% 0.2 25 / 0.45);
+  color: oklch(87% 0.08 25);
+}
+.error::before { content: "⚠  "; }
+
+pre.src {
+  margin: 0;
+  padding: 1rem 1.3rem;
+  font: 1.25rem var(--mono);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: auto;
+}
+pre.src mark {
+  color: white;
+  background: var(--danger);
+  border-radius: 4px;
+  padding: 0 0.12em;
+  animation: pulse 1.3s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% { box-shadow: 0 0 0 5px oklch(68% 0.2 25 / 0.3); }
+}
+
+h3, h4 { letter-spacing: -0.01em; }
+
+/* Expression chips. */
+ul.reps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 18rem;
+  overflow: auto;
+}
+ul.reps li {
+  font: 0.88rem var(--mono);
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+ul.reps li:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: oklch(72% 0.19 var(--hue) / 0.15);
+}
+
+
+/* 9. TREE DIAGRAM: connector lines from ::before and ::after -----------------
+   Each <li> draws a vertical line (::before) and a horizontal elbow (::after).
+   The last child cuts its vertical line short, which closes the branch.     */
+.tree {
+  padding: 1.3rem 1.5rem;
+  font-family: var(--mono);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: auto;
+}
+.tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li > ul { padding-left: calc(0.8rem - 1px); }
+.tree li {
+  position: relative;
+  padding: 0.2rem 0 0.2rem 1.1rem;
+  line-height: 1.6rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.tree li::before,
+.tree li::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  border: 0 solid oklch(72% 0.19 var(--hue) / 0.5);
+}
+.tree li::before { top: 0; bottom: 0; border-left-width: 2px; }
+.tree li::after  { top: 1rem; width: 0.85rem; border-top-width: 2px; border-top-left-radius: 0; }
+.tree li:last-child::before { bottom: auto; height: 1rem; }
+.tree > ul > li { padding-left: 0; }
+.tree > ul > li::before,
+.tree > ul > li::after { content: none; }
+
+.tree .op {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  vertical-align: top;
+  border-radius: 50%;
+  font-weight: 800;
+  color: var(--on-accent);
+  background: var(--gradient);
+  box-shadow: 0 0 12px var(--glow);
+  cursor: default;
+  transition: transform 0.2s;
+}
+.tree .val { margin-left: 0.35rem; font-size: 0.85rem; color: var(--muted); }
+
+/* :has() lets a parent react to its child. Hover an operator to light up its subtree. */
+.tree li:has(> .op:hover) { background: oklch(72% 0.19 var(--hue) / 0.1); }
+.tree .op:hover { transform: scale(1.18); }
+
+/* Leaves (no nested list) are the atoms: the 1s. */
+.tree li:not(:has(> ul)) { color: var(--accent-2); font-weight: 700; }
+
+
+/* 10. BROWSER: controls, table, chart ---------------------------------------- */
+.controls {
+  gap: 0.9rem 1.3rem;
+  padding: 1rem 1.3rem;
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+}
+.controls > label { color: var(--muted); font-size: 0.85rem; }
+#b-N, #b-K { width: 7rem; font-family: var(--mono); }
+
+#b-progress {
+  margin-left: auto;
+  font: 0.85rem var(--mono);
+  color: var(--muted);
+}
+/* While Stop is enabled (a search is running), the progress text shimmers.
+   No JavaScript involved: :has() checks the button's state.              */
+.controls:has(#b-stop:not(:disabled)) #b-progress {
+  background: linear-gradient(90deg, var(--muted) 35%, var(--accent-2) 50%, var(--muted) 65%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  animation: sweep 1.4s linear infinite;
+}
+@keyframes sweep {
+  from { background-position: 100% 0; }
+  to   { background-position: -150% 0; }
+}
+
+.table-card { padding: 0; overflow: hidden; }
+.table-scroll { max-height: 68vh; overflow: auto; }
+
+table {
+  width: 100%;
+  border-collapse: separate;   /* lets sticky headers keep their borders */
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  background: oklch(24% 0.045 var(--hue) / 0.95);
+  border-bottom: 1px solid var(--border);
+}
+th[data-key] { cursor: pointer; user-select: none; transition: color 0.2s; }
+th[data-key]::after { content: " ↕"; opacity: 0.35; }
+th[data-key]:hover { color: var(--text); }
+
+td {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+#b-table td:first-child { font-weight: 700; }
+#b-table td:nth-child(2) { color: var(--accent-2); font-weight: 700; }
+#b-table td:nth-child(3) { color: var(--muted); }
+
+tbody tr { transition: background 0.15s; }
+tbody tr:nth-child(even) { background: oklch(100% 0 0 / 0.02); }
+#b-table tbody tr { cursor: pointer; }
+#b-table tbody tr:hover {
+  background: linear-gradient(90deg, oklch(72% 0.19 var(--hue) / 0.2), transparent 80%);
+}
+#b-table tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+
+td.expr {
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+tbody tr:hover td.expr { color: var(--text); }
+
+.pager {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--border);
+}
+#b-page {
+  font: 0.85rem var(--mono);
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-strong);
+}
+.pager .spacer { flex: 1; }
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 520 / 280;
+  border-radius: var(--radius-sm);
+}
+
+#b-detail { display: grid; gap: 0.6rem; }
+#b-detail h3 { margin: 0; font-size: 1.2rem; }
+#b-detail h4 { margin: 0.4rem 0 0; font-size: 0.95rem; }
+#b-detail p  { margin: 0; color: var(--muted); font-size: 0.9rem; }
+#b-detail .tree { margin-top: 0.5rem; box-shadow: none; }
+
+#b-records h3 { margin: 0 0 0.6rem; font-size: 1rem; }
+#b-records td { font-family: var(--mono); font-size: 0.85rem; }
+#b-records tr:hover td { background: oklch(100% 0 0 / 0.04); }
+
+
+/* 11. FOOTER: an invitation to learn ----------------------------------------- */
+footer {
+  max-width: 1400px;
+  margin: 2rem auto 0;
+  padding: 2.5rem clamp(1rem, 4vw, 3rem) 3.5rem;
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+footer p { margin: 0; max-width: 60ch; }
+footer strong { color: var(--text); }
+footer code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+  background: var(--surface-strong);
+  color: var(--accent-2);
+}
+.hue { gap: 0.8rem; font-weight: 600; color: var(--text); }
+
+.css-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.css-features a {
+  display: inline-block;
+  font: 0.8rem var(--mono);
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.css-features a:hover {
+  transform: translateY(-2px);
+  border-color: transparent;
+  background:
+    linear-gradient(var(--bg-2), var(--bg-2)) padding-box,
+    var(--gradient) border-box;
+  box-shadow: 0 10px 24px -12px var(--accent);
+}
+
+
+/* 12. RESPONSIVE & ACCESSIBLE ------------------------------------------------ */
+@media (max-width: 720px) {
+  .ops { margin-left: 0; }
+  #b-progress { margin-left: 0; flex-basis: 100%; }
+  dl.kv { grid-template-columns: 1fr; }
+  dl.kv dt { border-bottom: 0; padding-bottom: 0; background: none; }
+}
+
+/* Respect people who get motion sickness from animation. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

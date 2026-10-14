@@ -2,24 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Number Circuits</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header>
-    <h1>Number Circuits</h1>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">1</div>
+      <div>
+        <h1>Number Circuits</h1>
+        <p class="tagline">Building every number from nothing but ones</p>
+      </div>
+    </div>
     <nav>
       <button data-tab="calc" class="tab active">Calculator</button>
       <button data-tab="browser" class="tab">Browser</button>
     </nav>
-     <div class="ops">
-       Operations: <b>+</b> <b>*</b>
-       <label><input id="op-pow" type="checkbox"> ^ (exponent)</label>
-       <label><input id="op-fact" type="checkbox"> ! (factorial)</label>
-     </div>
+    <div class="ops">
+      <span>Operations</span> <b>+</b> <b>*</b>
+      <label><input id="op-pow" type="checkbox"> ^ exponent</label>
+      <label><input id="op-fact" type="checkbox"> ! factorial</label>
+    </div>
   </header>
 
   <section id="calc" class="panel active">
+    <div class="panel-head">
+      <h2>Build a number from <em>nothing but ones</em>.</h2>
+      <p>Type an expression using <code>1</code>, <code>+</code>, <code>*</code> and parentheses.
+         Each 1 costs one point. Can you find the cheapest recipe?</p>
+    </div>
     <div class="row">
       <select id="c-mode">
         <option value="expr">Expression</option>
@@ -27,10 +39,22 @@
       </select>
       <input id="c-input" type="text" value="(1+1)*(1+1+1)" spellcheck="false" autocomplete="off">
     </div>
+    <div class="row examples">
+      <span>Try:</span>
+      <button class="chip" data-example="(1+1)*(1+1+1)">6</button>
+      <button class="chip" data-example="1+1+1+1+1+1+1">7 the long way</button>
+      <button class="chip" data-example="(1+1+1)*(1+1+1)*(1+1+1)">27</button>
+      <button class="chip" data-example="(1+(1+1)*(1+1+1))*(1+1)">14</button>
+      <button class="chip" data-example="11">11 (oops)</button>
+    </div>
     <div id="c-output"></div>
   </section>
 
   <section id="browser" class="panel">
+    <div class="panel-head">
+      <h2>Explore the <em>landscape</em> of integers.</h2>
+      <p>Search every number up to N, see its minimal cost, and click any row to reveal all of its cheapest circuits.</p>
+    </div>
     <div class="row controls">
       <label>N <input id="b-N" type="number" value="1000" min="1"></label>
       <label>K <input id="b-K" type="number" placeholder="auto" min="1"></label>
@@ -40,34 +64,66 @@
           <option value="tree">tree</option>
         </select>
       </label>
-      <label><input id="b-minimal" type="checkbox" checked> minimal only (dominance)</label>
-       <label><input id="b-identity" type="checkbox"> include x*1, 1^y, x^1</label>
-      <button id="b-run">Run</button>
-      <button id="b-stop" disabled>Stop</button>
+      <label><input id="b-minimal" type="checkbox" checked> minimal only</label>
+      <label><input id="b-identity" type="checkbox"> include x*1, 1^y, x^1</label>
+      <button id="b-run">▶ Run</button>
+      <button id="b-stop" disabled>■ Stop</button>
       <span id="b-progress"></span>
     </div>
     <div class="grid">
-      <div>
-        <table id="b-table">
-          <thead><tr>
-            <th data-key="n">n</th><th data-key="cost">C(n)</th>
-            <th data-key="count" title="value mode: binary trees modulo commutativity">#reps</th>
-            <th>example</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-        <div class="row">
-          <button id="b-prev">◀</button><span id="b-page"></span><button id="b-next">▶</button>
-          <button id="b-json">Export JSON</button><button id="b-csv">Export CSV</button>
+      <div class="stack">
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table id="b-table">
+              <thead><tr>
+                <th data-key="n">n</th><th data-key="cost">C(n)</th>
+                <th data-key="count" title="value mode: binary trees modulo commutativity">#reps</th>
+                <th>example</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="row pager">
+            <button id="b-prev" aria-label="Previous page">◀</button><span id="b-page"></span><button id="b-next" aria-label="Next page">▶</button>
+            <span class="spacer"></span>
+            <button id="b-json">Export JSON</button><button id="b-csv">Export CSV</button>
+          </div>
         </div>
       </div>
-      <div>
-        <canvas id="b-chart" width="520" height="280"></canvas>
-        <div id="b-detail"></div>
-        <div id="b-records"></div>
+      <div class="stack">
+        <div class="card">
+          <h3 class="card-title">Cost vs. n</h3>
+          <canvas id="b-chart" width="520" height="280"></canvas>
+        </div>
+        <div id="b-detail" class="card"></div>
+        <div id="b-records" class="card"></div>
       </div>
     </div>
   </section>
+
+  <footer>
+    <p><strong>Every pixel on this page is plain CSS</strong>: no frameworks, no images, no build step.
+       Open DevTools (<code>F12</code>), inspect anything, and change a value. That's how everyone learns.</p>
+    <label class="hue">Theme hue <input id="hue" type="range" min="0" max="360" value="275"></label>
+    <p>That slider only changes one custom property: <code>--hue</code>. Everything else follows.</p>
+    <ul class="css-features">
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/Using_CSS_custom_properties" target="_blank" rel="noopener">custom properties</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/color_value/oklch" target="_blank" rel="noopener">oklch()</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/@property" target="_blank" rel="noopener">@property</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/:has" target="_blank" rel="noopener">:has()</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/CSS_grid_layout" target="_blank" rel="noopener">grid</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/CSS_flexible_box_layout" target="_blank" rel="noopener">flexbox</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/backdrop-filter" target="_blank" rel="noopener">backdrop-filter</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/gradient/conic-gradient" target="_blank" rel="noopener">conic-gradient()</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/background-clip" target="_blank" rel="noopener">background-clip: text</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/@keyframes" target="_blank" rel="noopener">@keyframes</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/clamp" target="_blank" rel="noopener">clamp()</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/::before" target="_blank" rel="noopener">::before / ::after</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/appearance" target="_blank" rel="noopener">appearance</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/position#sticky_positioning" target="_blank" rel="noopener">position: sticky</a></li>
+      <li><a href="https://developer.mozilla.org/docs/Web/CSS/@media/prefers-reduced-motion" target="_blank" rel="noopener">prefers-reduced-motion</a></li>
+    </ul>
+  </footer>
 
   <script type="module" src="src/main.js"></script>
 </body>

@@ -113,4 +113,6 @@ export function initBrowser(root, getOps = () => ({})) {
   $('#b-next').onclick = () => { page++; renderTable(); };
   $('#b-json').onclick = () => { rows.forEach(example); download('circuits.json', toJSON(rows), 'application/json'); };
   $('#b-csv').onclick = () => { rows.forEach(example); download('circuits.csv', toCSV(rows), 'text/csv'); };
+   window.addEventListener('themechange', () => drawChart($('#b-chart'), rows));
+   drawChart($('#b-chart'), rows);
 }

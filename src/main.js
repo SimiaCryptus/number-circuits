@@ -16,3 +16,19 @@ const getOps = () => ({
 const updateCalc = initCalculator(document.getElementById('calc'), getOps);
 initBrowser(document.getElementById('browser'), getOps);
 for (const id of ['op-pow', 'op-fact']) document.getElementById(id).addEventListener('change', updateCalc);
+// Example chips: drop an expression into the calculator.
+const cInput = document.getElementById('c-input');
+for (const chip of document.querySelectorAll('[data-example]')) {
+   chip.addEventListener('click', () => {
+     document.getElementById('c-mode').value = 'expr';
+     cInput.value = chip.dataset.example;
+     cInput.dispatchEvent(new Event('input'));
+     cInput.focus();
+   });
+}
+// Theme hue: one custom property recolours the whole page.
+const hue = document.getElementById('hue');
+hue.addEventListener('input', () => {
+   document.documentElement.style.setProperty('--hue', hue.value);
+   window.dispatchEvent(new Event('themechange'));
+});
